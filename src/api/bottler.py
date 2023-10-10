@@ -21,13 +21,25 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     print(potions_delivered)
     with db.engine.begin() as connection:
         for potions in potions_delivered:
-            sql_select_string = connection.execute(sqlalchemy.text("SELECT num_red_portions from global_inventory"))
-            quantity = sql_select_string.get("num_red_potions")
+            #enough bools
+            enough_red, enough_blue, enough_green = 0
+            sql_select_string = connection.execute(sqlalchemy.text("SELECT num_red_potions, num_blue_potions, num_green_potions from global_inventory"))
+            red_count = sql_select_string.get("num_red_potions")
+            blue_count = sql_select_string.get("num_blue_potions")
+            green_count = sql_select_string.get("num_green_potions")
+                
+            red_bottler = ((potions.potion_type[0])/100) * potions.quantity
+            blue_bottler = ((potions.potion_type[1])/100) * potions.quantity
+            green_bottler = ((potions.potion_type[2])/100) * potions.quantity
             
             #check if there are enough potions to be delivered
-            if quantity >= potions.quantity:
-                quantity = quantity - potions.quantity
-            sql_text = ("UPDATE global_inventory SET num_red_potions = %f",quantity)
+            if red_count >= red_bottler:
+                rec_count = red_count-red_bottler
+            if blue_count >= blue_bottler:
+                blue_count = blue_count-blue_bottler
+            if green_count >= green_bottler:
+                green_count = green_count-green_bottler
+            sql_text = ("UPDATE global_inventory SET num_red_potions = %f, num_blue_potions = %f, num_green_potions = %f", red_count, blue_count, green_count)
             result = connection.execute(sqlalchemy.text(sql_text))
     return "OK"
 
@@ -44,7 +56,7 @@ def get_bottle_plan():
 
     # Initial logic: bottle all barrels into red potions.
     with db.engine.begin() as connection:
-        result = connection.execute(sqlalchemy.text("SELECT num_red_potions AS quantity from global_inventory"))
+        result = connection.execute(sqlalchemy.text("SELECT num_red_potions, num_blue_potions, num_green_potions from global_inventory"))
 
     return result
 

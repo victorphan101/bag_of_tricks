@@ -44,13 +44,15 @@ def get_cart(cart_id: int):
 
 
 class CartItem(BaseModel):
-    quantity: int
+    red_quantity: int
+    blue_quantity: int
+    green_quantity: int
 
 
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ """
-    cart_list_items.insert(cart_id, {"sku": item_sku, "quantity": cart_item.quantity})
+    cart_list_items.insert(cart_id, {"sku": item_sku, "red_quantity": cart_item.red_quantity, "blue_quantity": cart_item.blue_quantity, "green_quantity": cart_item.green_quantity})
     return "OK"
 
 
@@ -62,13 +64,17 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
     #total_potions-bought takes cart_id
     #total_gold_paid updates the global_inventory
-    total_potions_bought = (cart_list_items.get(cart_id)).get("quantity")
-    checkout_string = {"total_potions_bought": total_potions_bought, "total_gold_paid": cart_checkout.payment}
+    red_potions_bought = (cart_list_items.get(cart_id)).get("red_quantity")
+    blue_potions_bought = (cart_list_items.get(cart_id)).get("blue_quantity")
+    green_potions_bought = (cart_list_items.get(cart_id)).get("green_quantity")
+    checkout_string = {"red_potions_bought": red_potions_bought, "blue_potions_bought": blue_potions_bought, "green_potions_bought": green_potions_bought, "total_gold_paid": cart_checkout.payment}
     with db.engine.begin() as connection:
-        sql_select_string = connection.execute(sqlalchemy.text("SELECT num_red_portions, gold from global_inventory"))
-        quantity = sql_select_string.get("num_red_portions") - total_potions_bought
+        sql_select_string = connection.execute(sqlalchemy.text("SELECT num_red_potions, num_blue_potions, num_green,potions, gold from global_inventory"))
+        red_quantity = sql_select_string.get("num_red_potions") - red_potions_bought
+        blue_quantity = sql_select_string.get("num_blue_potions") - blue_potions_bought
+        green_quantity = sql_select_string.get("num_green_potions") - green_potions_bought
         num_gold = sql_select_string.get("gold") + cart_checkout.payment
-        sql_text = ("UPDATE global_inventory SET num_red_potions = %f, gold= %f",quantity, num_gold)
+        sql_text = ("UPDATE global_inventory SET num_red_potions = %f, num_blue_potions = %f, num_green_potions = %f, gold= %f", red_quantity, blue_quantity, green_quantity, num_gold)
         result = connection.execute(sqlalchemy.text(sql_text))
     del cart_list[cart_id]
     cart_list_items[cart_id] = []

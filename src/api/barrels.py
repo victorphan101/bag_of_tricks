@@ -25,23 +25,92 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
     print(barrels_delivered)
     with db.engine.begin() as connection:
         for barrels in barrels_delivered:
-            sql_select_string = connection.execute(sqlalchemy.text("SELECT num_red_portions, num_red_ml, gold from global_inventory"))
-            quantity = sql_select_string.get("num_red_potions")
-            num_red_ml = sql_select_string.get("num_red_ml")
-            gold = sql_select_string.get("gold")
+            #quantity = red_count + green_count + blue_count
+            quantity = 0
+            red_count = 0
+            green_count = 0
+            blue_count = 0
             
-            #check if there is at least 10 potions from global_inventory
-            #if not, check if there is 100ml to brew new potion
-            num_red_ml = num_red_ml + barrels.ml_per_barrel
-            if quantity < 10:
-                while num_red_ml > 100:
-                    quantity = quantity +1
-                    num_red_ml = num_red_ml - 100
+            #ml_amount = red_ml + green_ml + blue_ml
+            red_ml = 0
+            green_ml = 0
+            blue_ml = 0
+            
+            #condition for enough potions
+            enough_red = True
+            enough_blue = True
+            enough_green = True
+             
+            gold_sql_select_string = connection.execute(sqlalchemy.text("SELECT gold from global_inventory"))
+            gold = gold_sql_select_string.get("gold")
+
+            
+            if barrels.potion_type[0] > 0: 
+                red_sql_select_string = connection.execute(sqlalchemy.text("SELECT num_red_potions, num_red_ml from global_inventory"))
+                red_count = red_sql_select_string.get("num_red_potions")
+                red_in_barrel = ((barrels.potion_type[0])/10) * barrels.quantity
+                
+                red_ml = red_sql_select_string.get("num_red_ml")
+            
+                #check if there is at least 10 potions from global_inventory
+                #if not, check if there is 100ml to brew new potion
+                red_ml_barrel = (((barrels.potion_type[0])/10) *barrels.ml_per_barrel)
+                if red_count < 10:
+                    while red_ml > 100:
+                        red_count = red_count +1
+                        red_ml = red_ml - 100
+                        
+                if red_count >= red_in_barrel:
+                    enough_red = True
+                else:
+                    enough_red = False
+                        
+            if barrels.potion_type[1] > 0: 
+                blue_sql_select_string = connection.execute(sqlalchemy.text("SELECT num_blue_potions, num_blue_ml from global_inventory"))
+                blue_count = blue_sql_select_string.get("num_blue_potions")
+                blue_in_barrel = ((barrels.potion_type[1])/10) * barrels.quantity
+                
+                blue_ml = blue_sql_select_string.get("num_blue_ml")
+            
+                #check if there is at least 10 potions from global_inventory
+                #if not, check if there is 100ml to brew new potion
+                blue_ml_barrel = (((barrels.potion_type[1])/10) *barrels.ml_per_barrel)
+                if blue_count < 10:
+                    while blue_ml > 100:
+                        blue_count = blue_count +1
+                        blue_ml = blue_ml - 100
+                        
+                if blue_count >= blue_in_barrel:
+                    enough_blue = True
+                else:
+                    enough_blue = False
+                        
+            if barrels.potion_type[2] > 0: 
+                green_sql_select_string = connection.execute(sqlalchemy.text("SELECT num_green_potions, num_green_ml from global_inventory"))
+                green_count = green_sql_select_string.get("num_green_potions")
+                green_in_barrel = ((barrels.potion_type[2])/10) * barrels.quantity
+                
+                green_ml = green_sql_select_string.get("num_green_ml")
+            
+                #check if there is at least 10 potions from global_inventory
+                #if not, check if there is 100ml to brew new potion
+                green_ml_barrel = (((barrels.potion_type[2])/10) *barrels.ml_per_barrel)
+                if green_count < 10:
+                    while green_ml > 100:
+                        green_count = green_count +1
+                        green_ml = green_ml - 100
+                        
+                if green_count >= green_in_barrel:
+                    enough_blue = True
+                else:
+                    enough_blue = False
+            
+            #check if there is enough potions to finish the delivery
             #deliver the potion and claim the gold
-            if quantity >= barrels.quantity:
+            if enough_red and enough_blue and enough_green:
                 quantity = quantity - barrels.quantity
-                gold = gold + barrels.price
-            sql_text = ("UPDATE global_inventory SET num_red_potions = %f, num_red_ml = %f, gold = %f", quantity, num_red_ml, gold)
+                gold = gold + barrels.price     
+            sql_text = ("UPDATE global_inventory SET num_red_potions = %f, num_red_ml = %f, num_blue_potions = %f, num_blue_ml = %f num_green_potions = %f, num_green_ml = %f, gold = %f", red_count, red_ml, blue_count, blue_ml, green_count, green_ml, gold)
             result = connection.execute(sqlalchemy.text(sql_text))
     return "OK"
 
@@ -57,7 +126,9 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     for barrel in wholesale_catalog:
         new_dict ={}
         new_dict.update({"sku": barrel.sku})
-        new_dict.update({"quantity": barrel.quantity})
+        new_dict.update({"red quantity": ((barrel.potion_type[0])/10) * barrel.quantity})
+        new_dict.update({"blue quantity": ((barrel.potion_type[1])/10) * barrel.quantity})
+        new_dict.update({"red quantity": ((barrel.potion_type[2])/10) * barrel.quantity})
         result.add(new_dict)
         
     return result
