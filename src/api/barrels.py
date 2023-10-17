@@ -126,9 +126,10 @@ def get_wholesale_purchase_plan(wholesale_catalog: list[Barrel]):
     for barrel in wholesale_catalog:
         new_dict ={}
         new_dict.update({"sku": barrel.sku})
-        new_dict.update({"red quantity": ((barrel.potion_type[0])/10) * barrel.quantity})
-        new_dict.update({"blue quantity": ((barrel.potion_type[1])/10) * barrel.quantity})
-        new_dict.update({"red quantity": ((barrel.potion_type[2])/10) * barrel.quantity})
+        
+        #count the quantities
+        quantity = (((barrel.potion_type[0])/10) * barrel.quantity) + (((barrel.potion_type[1])/10) * barrel.quantity) + (((barrel.potion_type[2])/10) * barrel.quantity)
+        new_dict.update({"quantity" : quantity})
         result.add(new_dict)
         
     return result

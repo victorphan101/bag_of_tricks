@@ -18,29 +18,35 @@ class PotionInventory(BaseModel):
 @router.post("/deliver")
 def post_deliver_bottles(potions_delivered: list[PotionInventory]):
     """ """
-    print(potions_delivered)
     with db.engine.begin() as connection:
+        print(potions_delivered)
+
         for potions in potions_delivered:
-            #enough bools
-            enough_red, enough_blue, enough_green = 0
-            sql_select_string = connection.execute(sqlalchemy.text("SELECT num_red_potions, num_blue_potions, num_green_potions from global_inventory"))
-            red_count = sql_select_string.get("num_red_potions")
-            blue_count = sql_select_string.get("num_blue_potions")
-            green_count = sql_select_string.get("num_green_potions")
+            
+            add_potions = sum(potions.quantity for potion in potions_delivered)
+            red_ml = sum(potions.quantity * potions.potion_type[0] for potions in potions_delivered)
+            green_ml = sum(potions.quantity * potions.potion_type[1] for potions in potions_delivered)
+            blue_ml = sum(potions.quantity * potions.potion_type[2] for potions in potions_delivered)
+            dark_ml = sum(potions.quantity * potions.potion_type[3] for potions in potions_delivered)
+            
+            for potion_delivered in potions_delivered:
+                connection.execute(
+                    sqlalchemy.text("UPDATE potions SET inventory = inventory + :add_potions WHERE type= :potion_type"), [{"add_potions" : potion_delivered.quantity, "potion_type": potion_delivered.potion_type}]
+                )
                 
-            red_bottler = ((potions.potion_type[0])/100) * potions.quantity
-            blue_bottler = ((potions.potion_type[1])/100) * potions.quantity
-            green_bottler = ((potions.potion_type[2])/100) * potions.quantity
+            connection.execute(
+                sqlalchemy.text("UPDATE globals SET red_ml = red_ml - :red_ml, green_ml = green_ml - :green_ml, blue_ml = blue_ml - :blue_ml, dark_ml = dark_ml - :dark_ml"), [{"red_ml" : red_ml, "green_ml": green_ml, "blue_ml": blue_ml, "dark_ml": dark_ml}]
+            )
             
             #check if there are enough potions to be delivered
-            if red_count >= red_bottler:
+            """if red_count >= red_bottler:
                 rec_count = red_count-red_bottler
             if blue_count >= blue_bottler:
                 blue_count = blue_count-blue_bottler
             if green_count >= green_bottler:
                 green_count = green_count-green_bottler
             sql_text = ("UPDATE global_inventory SET num_red_potions = %f, num_blue_potions = %f, num_green_potions = %f", red_count, blue_count, green_count)
-            result = connection.execute(sqlalchemy.text(sql_text))
+            result = connection.execute(sqlalchemy.text(sql_text))"""
     return "OK"
 
 # Gets called 4 times a day
@@ -54,15 +60,15 @@ def get_bottle_plan():
     # green potion to add.
     # Expressed in integers from 1 to 100 that must sum up to 100.
 
-    # Initial logic: bottle all barrels into red potions.
     with db.engine.begin() as connection:
+        
         result = connection.execute(sqlalchemy.text("SELECT num_red_potions, num_blue_potions, num_green_potions from global_inventory"))
 
     return result
 
     '''
     check inventory for quantity
-    index for each color: 0=red, 1=blue, 2=green
+    index for each color: 0=red, 1=green, 2=blue
     get_quantity = potion_type[0]/100 * quantity
     
     return [

@@ -7,15 +7,6 @@ from src import database as db
 #Number of Carts
 cart_id = 0
 
-#list of NewCart (cart_id as index)
-cart_list = {}
-
-#list of items in each cart (cart_id as index)
-cart_list_items = []
-
-#list of payments(a queue??)
-payments_made = {}
-
 router = APIRouter(
     prefix="/carts",
     tags=["cart"],
@@ -31,28 +22,27 @@ class NewCart(BaseModel):
 def create_cart(new_cart: NewCart):
     """ """
     cart_id = cart_id + 1
-    cart_list.add({cart_id : new_cart})
-    cart_list_items.add([]) 
+    with db.engine.begin() as connection:
+        sql_select_string = connection.execute(sqlalchemy.text("INSERT INTO customer_cart (cart_id, customer, quantity, payment, price) VALUES( :cart_id, :new_cart.customer, 0, 0, 0)"))
     return {"cart_id": cart_id}
 
 
 @router.get("/{cart_id}")
 def get_cart(cart_id: int):
     """ """
-    result = cart_list.get(cart_id)
-    return result
+    with db.engine.begin() as connection:
+        return connection.execute(sqlalchemy.text("SELECT cart_id from customer_cart"))
 
 
 class CartItem(BaseModel):
-    red_quantity: int
-    blue_quantity: int
-    green_quantity: int
+    quantity : int
 
 
 @router.post("/{cart_id}/items/{item_sku}")
 def set_item_quantity(cart_id: int, item_sku: str, cart_item: CartItem):
     """ """
-    cart_list_items.insert(cart_id, {"sku": item_sku, "red_quantity": cart_item.red_quantity, "blue_quantity": cart_item.blue_quantity, "green_quantity": cart_item.green_quantity})
+    with db.engine.begin() as connection:
+        sql_select_string = connection.execute(sqlalchemy.text("UPDATE customer_cart SET quantity = :cart_item.quantity WHERE cart_id = :cart_id"))
     return "OK"
 
 
@@ -62,12 +52,19 @@ class CartCheckout(BaseModel):
 @router.post("/{cart_id}/checkout")
 def checkout(cart_id: int, cart_checkout: CartCheckout):
     """ """
-    #total_potions-bought takes cart_id
+    
+    with db.engine.begin() as connection:
+        connection.execute(sqlalchemy.text("UPDATE customer_cart SET price = :cart_checkout.payment WHERE cart_id = :cart_id"))
+        get_quantity = connection.execute(sqlalchemy.text("SELECT quantity from customer_cart WHERE cart_id = :cart_id"))
+        return {"total_potions_bought" :get_quantity.get("quantity"), "total_gold_paid": cart_checkout.payment}
+    """#total_potions-bought takes cart_id
     #total_gold_paid updates the global_inventory
     red_potions_bought = (cart_list_items.get(cart_id)).get("red_quantity")
     blue_potions_bought = (cart_list_items.get(cart_id)).get("blue_quantity")
     green_potions_bought = (cart_list_items.get(cart_id)).get("green_quantity")
     checkout_string = {"red_potions_bought": red_potions_bought, "blue_potions_bought": blue_potions_bought, "green_potions_bought": green_potions_bought, "total_gold_paid": cart_checkout.payment}
+   
+   
     with db.engine.begin() as connection:
         sql_select_string = connection.execute(sqlalchemy.text("SELECT num_red_potions, num_blue_potions, num_green,potions, gold from global_inventory"))
         red_quantity = sql_select_string.get("num_red_potions") - red_potions_bought
@@ -80,3 +77,4 @@ def checkout(cart_id: int, cart_checkout: CartCheckout):
     cart_list_items[cart_id] = []
     
     return checkout_string
+"""
