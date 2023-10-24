@@ -38,15 +38,6 @@ def post_deliver_bottles(potions_delivered: list[PotionInventory]):
                 sqlalchemy.text("UPDATE globals SET red_ml = red_ml - :red_ml, green_ml = green_ml - :green_ml, blue_ml = blue_ml - :blue_ml, dark_ml = dark_ml - :dark_ml"), [{"red_ml" : red_ml, "green_ml": green_ml, "blue_ml": blue_ml, "dark_ml": dark_ml}]
             )
             
-            #check if there are enough potions to be delivered
-            """if red_count >= red_bottler:
-                rec_count = red_count-red_bottler
-            if blue_count >= blue_bottler:
-                blue_count = blue_count-blue_bottler
-            if green_count >= green_bottler:
-                green_count = green_count-green_bottler
-            sql_text = ("UPDATE global_inventory SET num_red_potions = %f, num_blue_potions = %f, num_green_potions = %f", red_count, blue_count, green_count)
-            result = connection.execute(sqlalchemy.text(sql_text))"""
     return "OK"
 
 # Gets called 4 times a day

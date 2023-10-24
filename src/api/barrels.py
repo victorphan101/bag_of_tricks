@@ -110,8 +110,7 @@ def post_deliver_barrels(barrels_delivered: list[Barrel]):
             if enough_red and enough_blue and enough_green:
                 quantity = quantity - barrels.quantity
                 gold = gold + barrels.price     
-            sql_text = ("UPDATE global_inventory SET num_red_potions = %f, num_red_ml = %f, num_blue_potions = %f, num_blue_ml = %f num_green_potions = %f, num_green_ml = %f, gold = %f", red_count, red_ml, blue_count, blue_ml, green_count, green_ml, gold)
-            result = connection.execute(sqlalchemy.text(sql_text))
+            connection.execute(sqlalchemy.text("UPDATE global_inventory SET num_red_potions = :red_count, num_red_ml = :red_ml, num_blue_potions = :blue_count, num_blue_ml = :blue_ml, num_green_potions = :green_count, num_green_ml = :green_ml, gold = :gold"))
     return "OK"
 
 # Gets called once a day

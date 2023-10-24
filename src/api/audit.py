@@ -15,7 +15,8 @@ router = APIRouter(
 @router.get("/inventory")
 def get_inventory():
     with db.engine.begin() as connection:
-        return connection.execute(sqlalchemy.text("SELECT * from global_inventory"))
+        return connection.execute(sqlalchemy.text("SELECT SUM(num_red_potions, num_blue_potions, num_green_potions) AS number_of_potions, SUM(num_red_ml, num_blue_ml, num_green_ml) AS ml_in_barrels, gold from global_inventory"))
+
 
 class Result(BaseModel):
     gold_match: bool
